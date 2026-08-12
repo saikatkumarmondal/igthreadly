@@ -1,14 +1,12 @@
+import { defineConfig } from "prisma/config";
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
-  migrations: {
-    path: "prisma/migrations",
-  },
-  datasource: {
-    // migrate সবসময় direct connection ব্যবহার করে,
-    // তাই এখানে DIRECT_URL দিচ্ছি (pooled URL নয়)
-    url: env("DIRECT_URL"),
+  migrate: {
+    async adapter() {
+      const { PrismaPg } = await import("@prisma/adapter-pg");
+      return new PrismaPg({ connectionString: process.env.DATABASE_URL });
+    },
   },
 });
