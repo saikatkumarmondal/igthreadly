@@ -10,14 +10,20 @@ export async function POST(request: Request) {
 
     if (!parsedBody.success) {
       return NextResponse.json(
-        { error: "Validation failed", details: parsedBody.error.flatten().fieldErrors },
+        {
+          error: "Validation failed",
+          details: parsedBody.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
 
     const { name, email, password } = parsedBody.data;
+    const normalizedEmail = email.toLowerCase().trim();
 
-    const existingUser = await prisma.user.findUnique({ where: { email } });
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
 
     if (existingUser) {
       return NextResponse.json(
@@ -29,7 +35,7 @@ export async function POST(request: Request) {
     const passwordHash = await hashPassword(password);
 
     const newUser = await prisma.user.create({
-      data: { name, email, passwordHash },
+      data: { name, email: normalizedEmail, passwordHash },
       select: { id: true, name: true, email: true, createdAt: true },
     });
 
@@ -37,7 +43,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("[REGISTER_ERROR]", error);
     return NextResponse.json(
-      { error: "A server error occurred, please try again" },
+      { error: "A server error occurred. Please try again." },
       { status: 500 }
     );
   }

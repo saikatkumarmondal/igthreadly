@@ -18,26 +18,35 @@ export const authConfig: NextAuthConfig = {
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
+        console.log("=== LOGIN DEBUG START ===");
+        console.log("Raw credentials:", credentials);
+
         const parsedCredentials = loginAccountSchema.safeParse(credentials);
 
         if (!parsedCredentials.success) {
+          console.log("ZOD VALIDATION FAILED:", parsedCredentials.error.flatten());
           return null;
         }
 
         const { email, password } = parsedCredentials.data;
+        const normalizedEmail = email.toLowerCase().trim();
+        console.log("Looking up email:", normalizedEmail);
 
         const existingUser = await prisma.user.findUnique({
-          where: { email },
+          where: { email: normalizedEmail },
         });
 
+        console.log("User found in DB:", existingUser ? existingUser.email : "NOT FOUND");
+        console.log("passwordHash exists:", !!existingUser?.passwordHash);
+
         if (!existingUser || !existingUser.passwordHash) {
+          console.log("=== FAILED: no user or no passwordHash ===");
           return null;
         }
 
-        const isPasswordValid = await verifyPassword(
-          password,
-          existingUser.passwordHash
-        );
+        const isPasswordValid = await verifyPassword(password, existingUser.passwordHash);
+        console.log("Password valid:", isPasswordValid);
+        console.log("=== LOGIN DEBUG END ===");
 
         if (!isPasswordValid) {
           return null;
